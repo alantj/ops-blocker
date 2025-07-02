@@ -10,11 +10,18 @@ if (!SCHEDULER_API_URL) {
 (async () => {
   try {
     const res = await fetch(SCHEDULER_API_URL);
+    // 2) Log the raw status
+    console.log(`<<< RESPONSE status: ${res.status} ${res.statusText}`);
+    // 3) Grab the raw text (so you can log it) before parsing
+    const bodyText = await res.text();
+    console.log(`<<< RESPONSE body:\n${bodyText}`);
     if (!res.ok) {
       throw new Error(
         `Failed to fetch ${SCHEDULER_API_URL}: ${res.status} ${res.statusText}`
       );
     }
+    const data = JSON.parse(bodyText);
+
     const data = await res.json();
 
     const USER_ID_TO_NAME = {
