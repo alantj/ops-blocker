@@ -18,8 +18,8 @@ jobs:
       - name: Fetch next Ops
         run: node scripts/get-next-ops.js > next.json
         env:
-          SCHEDULER_API_URL: ${{ secrets.SCHEDULER_API_URL }}
+          SCHEDULER_API_URL: ${{ vars.SCHEDULER_API_URL }}
       - name: Flip availability
         run: node scripts/flip-availability.js next.json
         env:
-          RR_API_KEY: ${{ secrets.RR_API_KEY }}
+          RR_API_KEY: ${{ vars.RR_API_KEY }}
