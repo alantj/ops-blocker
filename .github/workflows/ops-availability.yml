@@ -9,6 +9,9 @@ on:
 jobs:
   update-availability:
     runs-on: ubuntu-latest
+    env:
+      RR_API_KEY: ${{ vars.RR_API_KEY }}
+      SCHEDULER_API_URL: ${{ vars.SCHEDULER_API_URL }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -17,9 +20,6 @@ jobs:
       - run: npm ci
       - name: Fetch next Ops
         run: node scripts/get-next-ops.js > next.json
-        env:
-          SCHEDULER_API_URL: ${{ vars.SCHEDULER_API_URL }}
       - name: Flip availability
         run: node scripts/flip-availability.js next.json
-        env:
-          RR_API_KEY: ${{ vars.RR_API_KEY }}
+
