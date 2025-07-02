@@ -13,6 +13,11 @@ jobs:
       RR_API_KEY: ${{ vars.RR_API_KEY }}
       SCHEDULER_API_URL: ${{ vars.SCHEDULER_API_URL }}
     steps:
+      - name: Print raw GitHub event payload
+        run: |
+          echo "--- GITHUB.EVENT JSON ---"
+          cat "$GITHUB_EVENT_PATH"
+          echo "-------------------------"
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
