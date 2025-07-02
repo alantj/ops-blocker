@@ -1,0 +1,25 @@
+name: Ops Availability
+
+on:
+  schedule:
+    - cron: '0 20 * * 1-5'
+    - cron: '0 22 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  update-availability:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm ci
+      - name: Fetch next Ops
+        run: node scripts/get-next-ops.js > next.json
+        env:
+          SCHEDULER_API_URL: ${{ secrets.SCHEDULER_API_URL }}
+      - name: Flip availability
+        run: node scripts/flip-availability.js next.json
+        env:
+          RR_API_KEY: ${{ secrets.RR_API_KEY }}
