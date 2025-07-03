@@ -59,18 +59,18 @@ async function main() {
   const currZendeskId = resolveZendeskId(current.userId);
 
   // 3) flip them Unavailable/By%20Schedule
-  if (nextZendeskId) {
-    console.log(`→ Marking ${nextZendeskId} Unavailable (next ops)`);
-    await setAvailability(nextZendeskId, 'Unavailable');
-  } else {
-    console.warn('⚠️  No upcoming ops shift found');
-  }
-
   if (currZendeskId) {
     console.log(`→ Marking ${currZendeskId} By Schedule (current ops)`);
     await setAvailability(currZendeskId, 'By%20Schedule');
   } else {
     console.warn('⚠️  No current ops shift found');
+  }
+  
+  if (nextZendeskId) {
+    console.log(`→ Marking ${nextZendeskId} Unavailable (next ops)`);
+    await setAvailability(nextZendeskId, 'Unavailable');
+  } else {
+    console.warn('⚠️  No upcoming ops shift found');
   }
 }
 
