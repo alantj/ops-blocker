@@ -13,11 +13,10 @@ Set the following secrets in your GitHub repository settings:
 - `SCHEDULER_API_URL` – URL to the Scheduler endpoint returning the next Ops shift.
 - `RR_API_KEY` – API token for the Round Robin availability service.
 
-The workflow `.github/workflows/ops-availability.yml` runs Monday–Friday at 4 pm and 6 pm ET. It fetches the upcoming Ops user via `get-next-ops.js` and then updates availability with `flip-availability.js`.
+The workflow `.github/workflows/ops-availability.yml` runs Monday–Friday at 4 pm and 6 pm ET. It now calls `flip-availability.js` directly to fetch the next Ops user and update their availability.
 
-Run the scripts locally with:
+Run the script locally with:
 
 ```bash
-node scripts/get-next-ops.js > next.json
-node scripts/flip-availability.js next.json
+node scripts/flip-availability.js
 ```
