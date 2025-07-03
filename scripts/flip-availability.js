@@ -3,6 +3,7 @@
 import fetch from 'node-fetch'
 import assert from 'assert'
 import dotenv from 'dotenv'
+import { existsSync, readFileSync } from 'fs'
 dotenv.config()
 
 // —————————————————————————————————————————————————————————————
@@ -16,6 +17,21 @@ if (!SCHEDULER_API_URL) {
 if (!RR_API_KEY) {
   console.error('✗ Please set RR_API_KEY in your .env');
   process.exit(1);
+}
+
+// Determine if this is the 20:00 UTC scheduled run
+const TWENTY_CRON = '0 20 * * 1-5';
+let is20Cron = false;
+const eventPath = process.env.GITHUB_EVENT_PATH;
+if (eventPath && existsSync(eventPath)) {
+  try {
+    const eventData = JSON.parse(readFileSync(eventPath, 'utf8'));
+    if (eventData.schedule === TWENTY_CRON) {
+      is20Cron = true;
+    }
+  } catch (err) {
+    console.warn('⚠️  Could not parse GitHub event payload for schedule');
+  }
 }
 
 // map Scheduler userId → Zendesk user ID
@@ -59,13 +75,33 @@ async function main() {
   const currZendeskId = resolveZendeskId(current.userId);
 
   // 3) flip them Unavailable/By%20Schedule
+  if (current.userId === next.userId) {
+    if (currZendeskId) {
+      if (is20Cron && current.userId === 6) {
+        console.log('→ 20:00 cron with userId 6; leaving status unchanged');
+      } else {
+        console.log(
+          `→ Current and next user match (${currZendeskId}); marking Unavailable`
+        );
+        await setAvailability(currZendeskId, 'Unavailable');
+      }
+    } else {
+      console.warn('⚠️  No ops shift found for matching current/next user');
+    }
+    return;
+  }
+
   if (currZendeskId) {
-    console.log(`→ Marking ${currZendeskId} By Schedule (current ops)`);
-    await setAvailability(currZendeskId, 'By%20Schedule');
+    if (is20Cron && current.userId === 6) {
+      console.log('→ 20:00 cron for userId 6; skipping status change');
+    } else {
+      console.log(`→ Marking ${currZendeskId} By Schedule (current ops)`);
+      await setAvailability(currZendeskId, 'By%20Schedule');
+    }
   } else {
     console.warn('⚠️  No current ops shift found');
   }
-  
+
   if (nextZendeskId) {
     console.log(`→ Marking ${nextZendeskId} Unavailable (next ops)`);
     await setAvailability(nextZendeskId, 'Unavailable');
