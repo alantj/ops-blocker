@@ -23,8 +23,6 @@ jobs:
         with:
           node-version: '18'
       - run: npm ci
-      - name: Fetch next Ops
-        run: node scripts/get-next-ops.js > next.json
       - name: Flip availability
-        run: node scripts/flip-availability.js next.json
+        run: node scripts/flip-availability.js
 
