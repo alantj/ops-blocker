@@ -1,27 +1,26 @@
 #!/usr/bin/env node
 
-const fs = require('fs/promises');
+import fetch from 'node-fetch'
+import assert from 'assert'
+import dotenv from 'dotenv'
+dotenv.config()
 
-const file = process.argv[2];
-if (!file) {
-  console.error('Usage: node flip-availability.js <file>');
-  process.exit(1);
-}
+// —————————————————————————————————————————————————————————————
+// CONFIG / ENV
+// —————————————————————————————————————————————————————————————
+const SCHEDULER_API_URL = "https://scheduler-rust.vercel.app/api/shifts/next-ops"
 
-const { RR_API_KEY } = process.env;
-if (!RR_API_KEY) {
-  console.error('RR_API_KEY environment variable not set');
-  process.exit(1);
-}
+const RR_API_KEY = "1155856f-3606-11ee-a73c-42010a800022"
 
+// map Scheduler userId → Zendesk user ID
 const ZENDESK_IDS = {
-  'Alan Pugh': 370017496412,
-  'Heather Jaynes': 424114733631,
-  'Marissa Kern': 417743175252,
-  'Chelsey Moise': 10201236907028,
-  'Caitlin Bennett': 13225530481300,
-  'Cody Bauer': 14966965553044,
-  'Lenore Boles': 17464622881556,
+  1: 370017496412,
+  2: 417743175252,
+  3: 424114733631,
+  4: 10201236907028,
+  5: 13225530481300,
+  6: 14966965553044,
+  7: 17464622881556,
 };
 
 async function setAvailability(zendeskId, mode) {
@@ -29,39 +28,47 @@ async function setAvailability(zendeskId, mode) {
   const url =
     'https://pod4.roundrobin-assignment.com/call/16262/_zui5_set_agent_avail_mode' +
     `?p1=${RR_API_KEY}&p2=${zendeskId}&p3=${zendeskId}&p4=${mode}&p5=${cacheBuster}`;
-  try {
-    await fetch(url, { method: 'GET' });
-  } catch (err) {
-    console.error('Failed to update RR availability', err);
+
+  const res = await fetch(url, { method: 'GET' });
+  if (!res.ok) {
+    console.error(`✗ RoundRobin API returned ${res.status}`, await res.text());
   }
 }
 
-(async () => {
-  try {
-    const data = JSON.parse(await fs.readFile(file, 'utf8'));
-    const nextZendeskId =
-      ZENDESK_IDS[data.next?.name] ||
-      data.next?.userId ||
-      data.userId ||
-      data.nextUserId;
-    const currentZendeskId =
-      ZENDESK_IDS[data.current?.name] ||
-      data.current?.userId ||
-      data.currentUserId;
+function resolveZendeskId(userId) {
+  return ZENDESK_IDS[userId] ?? null;
+}
 
-    if (nextZendeskId) {
-      await setAvailability(nextZendeskId, 'Unavailable');
-    } else {
-      console.warn('No upcoming user found in JSON');
-    }
-
-    if (currentZendeskId) {
-      await setAvailability(currentZendeskId, 'By%20Schedule');
-    } else {
-      console.warn('No current user found in JSON');
-    }
-  } catch (err) {
-    console.error(err);
+async function main() {
+  // 1) fetch the JSON from your Scheduler endpoint
+  const res = await fetch(SCHEDULER_API_URL);
+  if (!res.ok) {
+    console.error(`✗ Scheduler API error: ${res.status}`, await res.text());
     process.exit(1);
   }
-})();
+  const { current, next } = await res.json();
+
+  // 2) look up their Zendesk IDs
+  const nextZendeskId = resolveZendeskId(next.userId);
+  const currZendeskId = resolveZendeskId(current.userId);
+
+  // 3) flip them Unavailable/By%20Schedule
+  if (nextZendeskId) {
+    console.log(`→ Marking ${nextZendeskId} Unavailable (next ops)`);
+    await setAvailability(nextZendeskId, 'Unavailable');
+  } else {
+    console.warn('⚠️  No upcoming ops shift found');
+  }
+
+  if (currZendeskId) {
+    console.log(`→ Marking ${currZendeskId} By Schedule (current ops)`);
+    await setAvailability(currZendeskId, 'By%20Schedule');
+  } else {
+    console.warn('⚠️  No current ops shift found');
+  }
+}
+
+main().catch(err => {
+  console.error(err);
+  process.exit(1);
+});
