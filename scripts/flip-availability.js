@@ -8,9 +8,15 @@ dotenv.config()
 // —————————————————————————————————————————————————————————————
 // CONFIG / ENV
 // —————————————————————————————————————————————————————————————
-const SCHEDULER_API_URL = "https://scheduler-rust.vercel.app/api/shifts/next-ops"
-
-const RR_API_KEY = "1155856f-3606-11ee-a73c-42010a800022"
+const { SCHEDULER_API_URL, RR_API_KEY } = process.env;
+if (!SCHEDULER_API_URL) {
+  console.error('✗ Please set SCHEDULER_API_URL in your .env');
+  process.exit(1);
+}
+if (!RR_API_KEY) {
+  console.error('✗ Please set RR_API_KEY in your .env');
+  process.exit(1);
+}
 
 // map Scheduler userId → Zendesk user ID
 const ZENDESK_IDS = {
