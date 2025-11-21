@@ -2,18 +2,21 @@ A tiny standalone Node.js utility and GitHub Actions workflow that, twice a day 
 
 Fetches “next Ops” from our Scheduler app’s public API (no auth),
 
-Calls our “Round Robin”–style app to mark that user Unavailable,
-
-Flips Ops user back to Available (“By Schedule”) at the end of their day.
+Updates agent status in our Triage Bot to explicitly set them active (available) or inactive (unavailable),
+and flips the Ops user back to active at the end of their day.
 
 ## Usage
 
-Set the following secrets in your GitHub repository settings:
+Set the following secret in your GitHub repository settings:
 
-- `SCHEDULER_API_URL` – URL to the Scheduler endpoint returning the next Ops shift.
-- `RR_API_KEY` – API token for the Round Robin availability service.
+- `SCHEDULER_API_URL` – URL to the Scheduler endpoint returning the current and next Ops shift.
 
-The workflow `.github/workflows/ops-availability.yml` runs Monday–Friday at 4 pm and 6 pm ET. It now calls `flip-availability.js` directly to fetch the next Ops user and update their availability.
+The workflow `.github/workflows/ops-availability.yml` runs Monday–Friday at 4 pm and 6 pm ET. It calls `flip-availability.js` to fetch the current/next Ops users and update their availability via Triage Bot:
+
+- Endpoint: `https://dispute-assigner.vercel.app/api/agents/update`
+- Method: `PUT`
+- Body: `{"id":"<agent-uuid>","active":true|false}`
+- Auth: none
 
 Run the script locally with:
 
